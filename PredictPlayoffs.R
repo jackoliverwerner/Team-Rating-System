@@ -21,14 +21,9 @@ year <- 2003
 
 season.results <- getLeagueResults(year, MLBteams, includePlayoffs = T)
 
-season.results$starter[season.results$starter == "A.Sanchez"] <- 
-  ifelse(season.results$team[season.results$starter == "A.Sanchez"] == "TOR", "Aa.Sanchez", "An.Sanchez")
-
-season.results$starter[season.results$starter == "C.Anderson"] <- 
-  ifelse(season.results$team[season.results$starter == "C.Anderson"] == "MIL", "Ch.Anderson", "Co.Anderson")
-
 reg.results <- season.results %>% filter(!playoffs)
-playoff.results <- season.results %>% filter(playoffs)
+playoff.results <- season.results %>% filter(playoffs) %>%
+  arrange(team, gameNum)
 
 
 # Format playoff results for prediction
@@ -48,7 +43,6 @@ p.away <- playoff.results %>% filter(!home) %>% arrange(series.name, game) %>%
 playoffs.df <- cbind(p.home, p.away) %>% mutate(winner = ifelse(home.result == "W", home.team, away.team)) %>%
   select(home.team, home.starter, away.team, away.starter, home.R, away.R, winner) %>%
   as.data.frame()
-
 
 
 ##########################
