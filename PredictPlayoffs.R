@@ -5,21 +5,20 @@
 library(skellam)
 
 #setwd("/Users/jackwerner/Documents/My Stuff/Baseball/Team Rating System")
-setwd("C:/Users/jack.werner1/Documents/BB")
+setwd("C:/Users/jack.werner1/Documents/BB/Team-Rating-System")
 
-source("getSeasonResults.R")
 source("JWPitchers.R")
-
-MLBteams <- paste0(getwd(), "/MLBteams.csv")
 
 
 ####################
 # Get game results #
 ####################
 
+full.results <- read.csv("gameLogs_1998_2016.csv")
+
 year <- 2003
 
-season.results <- getLeagueResults(year, MLBteams, includePlayoffs = T)
+season.results <- full.results %>% filter(Year == year)
 
 reg.results <- season.results %>% filter(!playoffs)
 playoff.results <- season.results %>% filter(playoffs) %>%
