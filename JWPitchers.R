@@ -16,8 +16,11 @@ runs.array.pitchers <- function(fullSeason.df, teamCol = "team", pitcherCol = "s
   fullSeason.df <- as.data.frame(fullSeason.df) %>%
     group_by_(pitcherCol) %>%
     mutate(starts = n()) %>%
-    ungroup() %>%
-    mutate(pitcherID = ifelse(starts > min.starts, paste0(team, "-", starter), "Other"))
+    ungroup()
+  
+  fullSeason.df$pitcherID <- ifelse(fullSeason.df$starts > min.starts,
+                                    paste0(fullSeason.df[[teamCol]], "-", fullSeason.df[[pitcherCol]]),
+                                    "Other")
   
   teamNames <- fullSeason.df[,teamCol][[1]] %>% unique()
 
@@ -59,7 +62,7 @@ score.grad.2 <- function(teamVar, oppVars, maxRuns, freqSlice) {
   return(out.score)
 }
 
-jw.gradient.pitchers <- function(runs.arr, iterations = 1000, speed = .001, startVal = 1) {
+jw.gradient.pitchers <- function(runs.arr, iterations = 1000, speed = .001, startVal = 1, print.every.n = 100) {
   runsList <- alply(runs.arr, 1)
   runsAgainstList <- alply(runs.arr, 2)
   
@@ -71,7 +74,7 @@ jw.gradient.pitchers <- function(runs.arr, iterations = 1000, speed = .001, star
   maxRuns <- dim(runs.arr)[3]
   
   for (i in 2:iterations) {
-    if (i %% 100 == 0) {
+    if (i %% print.every.n == 0) {
       print(i)
     }
     
@@ -109,5 +112,3 @@ jw.gradient.pitchers <- function(runs.arr, iterations = 1000, speed = .001, star
   return(out.list)
   
 }
-
-
