@@ -68,6 +68,7 @@ getTeamResults <- function(team, year) {
   
   out.df <- left_join(res.df, pitch.df, by = "gameNum")
   
+  out.df$starter <- sapply(strsplit(out.df$starter, "[. ]", perl = T), function(x){x[length(x)]})
   
   ################
   # ROSTER TABLE #
@@ -97,7 +98,7 @@ getTeamResults <- function(team, year) {
   
   # Filter only starters, create "starter" category to mimic main table
   roster.df <- roster.df %>% filter(GS > 0) %>% select(Name, ID, GS)
-  roster.df$starter <- paste0(substr(roster.df$Name, 1, 1), ".",sapply(strsplit(roster.df$Name, " "), function(x){x[length(x)]})) 
+  roster.df$starter <- sapply(strsplit(roster.df$Name, " "), function(x){x[length(x)]})
   
   # If there are pitchers with the same first initial and last name, STAND BACK
   if (nrow(roster.df) > length(unique(roster.df$starter))) {
@@ -122,7 +123,7 @@ getTeamResults <- function(team, year) {
     
     # Loop through offending names
     for (dname in dupes) {
-      print(paste0("Multiple pitchers with the same abbreviation (", dname, "). Resolving..."))
+      print(paste0("Multiple pitchers with the same last name (", dname, "). Resolving..."))
       
       # Data frame with the multiples
       just.dupes <- filter(roster.df, starter == dname) %>%
@@ -202,7 +203,7 @@ parseLine <- function(txt) {
   runs.away.pre <- strsplit(runs,"\n")[[1]][3]
   runs.away.pre <- strsplit(runs.away.pre, " +")[[1]]
   away.runs <- as.numeric(runs.away.pre[length(runs.away.pre) - 2])
-
+  
   # Get home runs (Ha!)
   runs.home.pre <- strsplit(runs,"\n")[[1]][4]
   runs.home.pre <- strsplit(runs.home.pre, " +")[[1]]
@@ -211,7 +212,7 @@ parseLine <- function(txt) {
   # Get game result
   home.result <- ifelse(home.runs > away.runs, "W", "L")
   away.result <- ifelse(home.runs < away.runs, "W", "L")
-
+  
   # Make return data frame
   out.df <- data.frame(team = c(away.team, home.team), gameNum = 200, playoffs = T, home = c(F, T),
                        opp = c(home.team, away.team), result = c(away.result, home.result),
@@ -275,9 +276,11 @@ getLeagueResults <- function(year, teamFile, includePlayoffs = F) {
     
     # Match pitchers with full names
     pteams <- as.character(unique(playoffs$team))
-
+    
     # All pitchers who started a regular season game for a playoff team
     reg.df <- select(results.df, team, starter, Name, ID) %>% filter(team %in% pteams, !is.na(starter)) %>% unique()
+    
+    playoffs$starter <-   sapply(strsplit(as.character(playoffs$starter), "[. ]", perl = T), function(x){x[length(x)]})
     
     # Number of times a pitcher with given last name matches to list of team's starters
     test <- mapply(function(x, y){sum(grepl(x, filter(reg.df, team == y)$starter))}, x = playoffs$starter, y = playoffs$team)
@@ -365,15 +368,15 @@ getLeagueResults <- function(year, teamFile, includePlayoffs = F) {
         }
       }
       
+      playoffs <- select(playoffs, -last.name)
     } else {
       playoffs$starter <- 
-        mapply(function(x, y){grep(x, filter(reg.df.a, team == y)$starter, value = T)}, x = playoffs$starter, y = playoffs$team)
+        mapply(function(x, y){grep(x, filter(reg.df, team == y)$starter, value = T)}, x = playoffs$starter, y = playoffs$team)
       
-      suppressWarnings(playoffs <- left_join(playoffs, reg.df.b, by = c("starter", "team")))
+      suppressWarnings(playoffs <- left_join(playoffs, reg.df, by = c("starter", "team")))
     }
     
     playoffs$opp <- as.character(playoffs$opp)
-    playoffs <- select(playoffs, -last.name)
     
     results.df <- rbind(results.df, playoffs)
     
