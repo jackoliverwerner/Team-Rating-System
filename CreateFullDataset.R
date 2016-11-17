@@ -3,7 +3,7 @@
 ##########
 
 #setwd("/Users/jackwerner/Documents/My Stuff/Baseball/Team Rating System")
-setwd("C:/Users/jack.werner1/Documents/BB")
+setwd("C:/Users/jack.werner1/Documents/BB/Team-Rating-System")
 
 source("getSeasonResults.R")
 
@@ -16,9 +16,23 @@ MLBteams <- paste0(getwd(), "/MLBteams.csv")
 listOfSeasons <- lapply(1998:2016, getLeagueResults, teamFile = MLBteams, includePlayoffs = T)
 names(listOfSeasons) <- paste0("y", 1998:2016)
 
-###################
-# List of Errors: #
-###################
+addYear <- function(x, y) {
+  out.df <- x
+  out.df$Year <- y
+  return(out.df)
+}
+
+listOfSeasons.wy <- mapply(FUN = addYear, x = listOfSeasons, y = 1998:2016, SIMPLIFY = F)
+
+
+fullSeasonResults <- rbindlist(listOfSeasons.wy)
+
+
+write.csv(fullSeasonResults, file = "gameLogs_1998_2016.csv")
+
+######################################
+# List of potential sticking points: #
+######################################
 
 # PLAYOFFS:
 # Multiple Martinezes for BOS 1999
@@ -31,14 +45,3 @@ names(listOfSeasons) <- paste0("y", 1998:2016)
 # 2002 SDP: Bobby Jones (18), Bobby Jones (2)
 # 2006 LAA: Jered Weaver (19), Jeff Weaver (16)
 # 2006 ARI: Enrique Gonzalez (18), Edgar Gonzalez (5)
-
-
-s2006 <- listOfSeasons$y2006
-s2006 %>% filter(team == "LAA") %>% View()
-
-
-x <- getLeagueResults(2001, teamFile = MLBteams, includePlayoffs = T)
-
-
-
-
