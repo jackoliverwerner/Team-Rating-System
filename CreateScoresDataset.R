@@ -82,7 +82,7 @@ pitcher.list.final <- mapply(FUN = addYear, x = pitcher.scores.list, y = 1998:20
 
 pitcher.df <- rbindlist(pitcher.list.final)
 
-write.csv(pitcher.df, file = "pitcherScores_1998_2016.csv")
+write.csv(pitcher.df, file = "pitcherScores_1998_2016.csv", row.names = F)
 
 
 # Deal with teams
@@ -90,9 +90,4 @@ team.list.final <- mapply(FUN = addYear, x = team.scores.list, y = 1998:2016, SI
 
 team.df <- rbindlist(team.list.final)
 
-write.csv(team.df, file = "teamScores_1998_2016.csv")
-
-
-
-
-
+write.csv(team.df, file = "teamScores_1998_2016.csv", row.names = F)
