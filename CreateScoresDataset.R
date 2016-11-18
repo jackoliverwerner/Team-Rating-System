@@ -91,3 +91,8 @@ team.list.final <- mapply(FUN = addYear, x = team.scores.list, y = 1998:2016, SI
 team.df <- rbindlist(team.list.final)
 
 write.csv(team.df, file = "teamScores_1998_2016.csv", row.names = F)
+
+
+
+
+

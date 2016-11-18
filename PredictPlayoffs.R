@@ -7,21 +7,19 @@ library(skellam)
 #setwd("/Users/jackwerner/Documents/My Stuff/Baseball/Team Rating System")
 setwd("C:/Users/jack.werner1/Documents/BB/Team-Rating-System")
 
-source("JWPitchers.R")
-
 
 ####################
 # Get game results #
 ####################
 
-full.results <- read.csv("gameLogs_1998_2016.csv")
+full.results <- read.csv("gameLogs_1998_2016.csv", stringsAsFactors = F)
+pitcher.scores.full <- read.csv("pitcherScores_1998_2016.csv", stringsAsFactors = F)
+team.scores.full <- read.csv("teamScores_1998_2016.csv", stringsAsFactors = F)
 
 year <- 2003
 
-season.results <- full.results %>% filter(Year == year)
 
-reg.results <- season.results %>% filter(!playoffs)
-playoff.results <- season.results %>% filter(playoffs) %>%
+playoff.results <- full.results %>% filter(playoffs, Year == year) %>%
   arrange(team, gameNum)
 
 
@@ -48,35 +46,9 @@ playoffs.df <- cbind(p.home, p.away) %>% mutate(winner = ifelse(home.result == "
 # Get model scores -- JW #
 ##########################
 
-its <- 10000
+team.scores <- filter(team.scores.full, Year == year)
+pitcher.scores <- filter(pitcher.scores.full, Year == year)
 
-# Optimize
-jw.results <- runs.array.pitchers(reg.results, min.starts = 10) %>% 
-  jw.gradient.pitchers(iterations = its, speed = .001, startVal = 2)
-
-
-# Finalize score dataframes
-team.scores <- jw.results$team.scores
-pitcher.scores <- jw.results$pitcher.scores
-
-namesFunc <- function(char) {
-  spl <- strsplit(char, "-")
-  len <- length(spl[[1]])
-  return(spl[[1]][len])
-}
-pitcher.scores$name <- sapply(as.character(pitcher.scores$team), namesFunc)
-
-# Include pitchers with not enough starts (assign them "Other" score)
-pitcher.scores.2 <- pitcher.scores %>% group_by(name) %>%
-  summarize(score = weighted.mean(score, starts))
-
-pitcher.scores.final.pre <- data.frame(starter = unique(reg.results$starter))
-
-pitcher.scores.final <- pitcher.scores.final.pre %>%
-  left_join(pitcher.scores.2, by = c("starter"="name")) %>%
-  rename(name = starter)
-
-pitcher.scores.final[is.na(pitcher.scores.final$score),]$score <- pitcher.scores.2$score[pitcher.scores.2$name == "Other"]
 
 ###############################
 # Prediction data frame -- JW #

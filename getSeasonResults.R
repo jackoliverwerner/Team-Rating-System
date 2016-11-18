@@ -160,8 +160,9 @@ getTeamResults <- function(team, year) {
           html_table(fill = T) %>%
           .[[1]]
         
+        # So this might actually cause problems because complete games are 
         suppressWarnings(pitcher.df <- pitcher.df[!is.na(as.numeric(pitcher.df$Rk)),-c(6, 49, 50)] %>%
-                           filter(Tm == team, grepl("GS", Inngs)))
+                           filter(Tm == team, grepl("GS", Inngs)|grepl("SHO", Inngs)|grepl("CG", Inngs)))
         
         # Put replacement data, replacement indices for given pitcher in list within "replacements"
         replacements[[rep.ind]] <- list(starts = as.numeric(pitcher.df$Gtm), ID = rID, Name = rName, starter = rStarter)

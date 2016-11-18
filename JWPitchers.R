@@ -62,6 +62,96 @@ score.grad.2 <- function(teamVar, oppVars, maxRuns, freqSlice) {
   return(out.score)
 }
 
+
+R.vec <- R.scores[,2]
+RA.vec <- RA.scores[,2]
+
+log.likelihood <- function(runs.arr, R.vec, RA.vec, mean.adj.fac) {
+  num.teams <- length(R.vec)
+  num.pitchers <- length(RA.vec)
+  max.runs <- dim(runs.arr)[3] - 1
+  
+  liks.df <- data.frame(runs = rep(0:max.runs, each = num.teams*num.pitchers),
+                        pitchers.lambda = rep(RA.vec, each = num.teams),
+                        teams.lambda = R.vec,
+                        frequency = as.vector(runs.arr)) %>%
+    mutate(lambda = teams.lambda*pitchers.lambda, 
+           like = frequency*runs*log(lambda) - lambda*frequency - frequency*log(factorial(runs)))
+  
+  sq.diff.means <- (weighted.mean(liks.df$teams.lambda, liks.df$frequency) - weighted.mean(liks.df$pitchers.lambda, liks.df$frequency))^2
+  
+  llik <- sum(liks.df$like) - 2*mean.adj.fac*sq.diff.means
+  
+  return(llik)
+}
+
+jw.gradient.pitchers.bt <- function(runs.arr, iterations = 1000, speed = .001, startVal = 1, print.every.n = 100) {
+  mean.adj.fac <- 100
+  
+  runsList <- alply(runs.arr, 1)
+  runsAgainstList <- alply(runs.arr, 2)
+  
+  R.scores <- matrix(0, nrow = 30, ncol = iterations)
+  RA.scores <- matrix(0, nrow = dim(runs.arr)[2], ncol = iterations)
+  R.scores[,1] <- startVal
+  RA.scores[,1] <- startVal
+  
+  maxRuns <- dim(runs.arr)[3]
+  
+  likelihoods <- rep(0, iterations)
+  likelihoods[1] <- log.likelihood(runs.arr, R.scores[,1], RA.scores[,1], mean.adj.fac = mean.adj.fac)
+  
+  for (i in 2:iterations) {
+    if (i %% print.every.n == 0) {
+      print(i)
+    }
+    
+    # Calculate gradient
+
+    percent.of.all.starts <- apply(runs.arr, 2, sum)/sum(apply(runs.arr, 2, sum))
+    percent.of.all.games <- apply(runs.arr, 1, sum)/sum(apply(runs.arr, 1, sum))
+    
+    diff.means <- mean(R.scores[,i - 1]) - mean(RA.scores[,i - 1])
+    
+    
+    grad.Rs <- mapply(score.grad.2,
+                      teamVar = R.scores[,i - 1],
+                      freqSlice = runsList,
+                      MoreArgs = list(oppVars = RA.scores[,i - 1], maxRuns = maxRuns)
+    ) - (2*mean.adj.fac*percent.of.all.games)*diff.means
+    
+    
+    R.scores[,i] <- R.scores[,i - 1] + speed*grad.Rs
+    
+    grad.RAs <- mapply(score.grad.2,
+                       teamVar = RA.scores[,i - 1],
+                       freqSlice = runsAgainstList,
+                       MoreArgs = list(oppVars = R.scores[,i - 1], maxRuns = maxRuns)
+    ) + (2*mean.adj.fac*percent.of.all.starts)*diff.means
+    # End calculate gradient
+    
+    
+    RA.scores[,i] <- RA.scores[,i - 1] + speed*grad.RAs
+    
+    team.scores <- data.frame(team = rownames(runs.arr), 
+                              score = R.scores[,iterations])
+    
+    pitcher.scores <- data.frame(team = colnames(runs.arr),
+                                 score = RA.scores[,iterations],
+                                 starts = apply(runs.arr, 2, sum))
+    
+    likelihoods[i] <- log.likelihood(runs.arr, R.scores[,i], RA.scores[,i], mean.adj.fac = mean.adj.fac)
+    
+  }
+  
+  out.list <- list(team.scores = team.scores, pitcher.scores = pitcher.scores,
+                   all.R = R.scores, all.RA = RA.scores, likelihoods = likelihoods)
+  
+  return(out.list)
+  
+}
+
+
 jw.gradient.pitchers <- function(runs.arr, iterations = 1000, speed = .001, startVal = 1, print.every.n = 100) {
   runsList <- alply(runs.arr, 1)
   runsAgainstList <- alply(runs.arr, 2)
@@ -78,13 +168,19 @@ jw.gradient.pitchers <- function(runs.arr, iterations = 1000, speed = .001, star
       print(i)
     }
     
+    # Calculate gradient
+    mean.adj.fac <- 100
+    percent.of.all.starts <- apply(runs.arr, 2, sum)/sum(apply(runs.arr, 2, sum))
+    percent.of.all.games <- apply(runs.arr, 1, sum)/sum(apply(runs.arr, 1, sum))
+    
     diff.means <- mean(R.scores[,i - 1]) - mean(RA.scores[,i - 1])
+    
     
     grad.Rs <- mapply(score.grad.2,
                       teamVar = R.scores[,i - 1],
                       freqSlice = runsList,
                       MoreArgs = list(oppVars = RA.scores[,i - 1], maxRuns = maxRuns)
-    ) - (200/nrow(R.scores))*diff.means
+    ) - (2*mean.adj.fac*percent.of.all.games)*diff.means
     
     
     R.scores[,i] <- R.scores[,i - 1] + speed*grad.Rs
@@ -93,7 +189,9 @@ jw.gradient.pitchers <- function(runs.arr, iterations = 1000, speed = .001, star
                        teamVar = RA.scores[,i - 1],
                        freqSlice = runsAgainstList,
                        MoreArgs = list(oppVars = R.scores[,i - 1], maxRuns = maxRuns)
-    ) + (200/nrow(RA.scores))*diff.means
+    ) + (2*mean.adj.fac*percent.of.all.starts)*diff.means
+    # End calculate gradient
+    
     
     RA.scores[,i] <- RA.scores[,i - 1] + speed*grad.RAs
     
@@ -112,3 +210,5 @@ jw.gradient.pitchers <- function(runs.arr, iterations = 1000, speed = .001, star
   return(out.list)
   
 }
+
+
