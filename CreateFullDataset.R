@@ -28,7 +28,7 @@ listOfSeasons.wy <- mapply(FUN = addYear, x = listOfSeasons, y = 1998:2016, SIMP
 fullSeasonResults <- rbindlist(listOfSeasons.wy)
 
 
-write.csv(fullSeasonResults, file = "gameLogs_1998_2016.csv")
+write.csv(fullSeasonResults, file = "gameLogs_1998_2016.csv", row.names = F)
 
 ######################################
 # List of potential sticking points: #
