@@ -97,7 +97,8 @@ getTeamResults <- function(team, year) {
     sapply(function(x){x[1]})
   
   # Filter only starters, create "starter" category to mimic main table
-  roster.df <- roster.df %>% filter(GS > 0) %>% select(Name, ID, GS)
+  roster.df <- roster.df %>% filter(GS > 0) %>% select(Name, ID, GS) %>%
+    mutate(GS = as.numeric(GS))
   roster.df$starter <- sapply(strsplit(roster.df$Name, " "), function(x){x[length(x)]})
   
   # If there are pitchers with the same first initial and last name, STAND BACK
@@ -115,7 +116,7 @@ getTeamResults <- function(team, year) {
     singles <- names(table(roster.df$starter)[table(roster.df$starter) == 1])
     
     # Start a vector with the non-offending names
-    keep.names <- roster.df$Name[roster.df$starter %in% singles]
+    keep.names <- roster.df$ID[roster.df$starter %in% singles]
     
     # This list will contain all the information about what to replace
     replacements <- list()
@@ -125,12 +126,19 @@ getTeamResults <- function(team, year) {
     for (dname in dupes) {
       print(paste0("Multiple pitchers with the same last name (", dname, "). Resolving..."))
       
+      firstT <- function(vec) {
+        vec.out <- rep(F, length(vec))
+        t.ind <- min(which(vec))
+        vec.out[t.ind] <- T
+        return(vec.out)
+      }
+      
       # Data frame with the multiples
       just.dupes <- filter(roster.df, starter == dname) %>%
-        mutate(most.common = GS == max(GS))
+        mutate(most.common = firstT(GS == max(GS)))
       
       # Multiple with most starts gets added to "acceptable names" list
-      keep.names <- c(keep.names, just.dupes$Name[just.dupes$most.common])
+      keep.names <- c(keep.names, just.dupes$ID[just.dupes$most.common])
       
       # Other multiples go here
       rarer <- filter(just.dupes, !most.common)
@@ -162,7 +170,7 @@ getTeamResults <- function(team, year) {
     }
     
     # Merge season data frame with full name data
-    out.df <- out.df %>% left_join(filter(roster.df, Name %in% keep.names), "starter") %>%
+    out.df <- out.df %>% left_join(filter(roster.df, ID %in% keep.names), "starter") %>%
       select(-GS)
     
     # Loop through and replace the rows with wrong pitchers
