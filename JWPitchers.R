@@ -52,19 +52,20 @@ runs.array.pitchers <- function(fullSeason.df, teamCol = "team", pitcherCol = "s
   return(runs.arr)
 }
 
+# Score for one player/team
 score.grad.2 <- function(teamVar, oppVars, maxRuns, freqSlice) {
-  runVec <- rep(1:maxRuns, each = length(oppVars))
+  runVec <- rep(0:(maxRuns-1), each = length(oppVars))
   
   oppVec <- rep(oppVars, maxRuns)
   freqVec <- as.vector(freqSlice)
   
-  out.score <- sum(freqVec*(runVec/teamVar - oppVars))
+  out.score <- sum(freqVec*(runVec/teamVar - oppVec))
   return(out.score)
 }
 
 
-R.vec <- R.scores[,2]
-RA.vec <- RA.scores[,2]
+#R.vec <- R.scores[,2]
+#RA.vec <- RA.scores[,2]
 
 log.likelihood <- function(runs.arr, R.vec, RA.vec, mean.adj.fac) {
   num.teams <- length(R.vec)

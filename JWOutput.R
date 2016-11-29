@@ -2,8 +2,8 @@
 # Set up #
 ##########
 
-#setwd("/Users/jackwerner/Documents/My Stuff/Baseball/Team Rating System")
-setwd("C:/Users/jack.werner1/Documents/BB/Team-Rating-System")
+setwd("/Users/jackwerner/Documents/My Stuff/Baseball/Team Rating System")
+#setwd("C:/Users/jack.werner1/Documents/BB/Team-Rating-System")
 
 source("getSeasonResults.R")
 source("JWPitchers.R")
@@ -15,10 +15,13 @@ MLBteams <- paste0(getwd(), "/MLBteams.csv")
 # Get scores #
 ##############
 
-year <- 2003
+year <- 2010
+
+season.results <- read.csv("gameLogs_1998_2016.csv") %>%
+  filter(Year == year, !playoffs)
 
 # Scrape and format season results data frame
-season.results <- getLeagueResults(year, MLBteams) %>% filter(!playoffs)
+#season.results <- getLeagueResults(year, MLBteams) %>% filter(!playoffs)
 
 
 its <- 1000
