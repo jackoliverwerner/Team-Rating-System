@@ -15,16 +15,18 @@ MLBteams <- paste0(getwd(), "/MLBteams.csv")
 # Get scores #
 ##############
 
-year <- 2010
+year <- 2012
 
 season.results <- read.csv("gameLogs_1998_2016.csv") %>%
+  mutate(Name = ifelse(is.na(Name), "Jake Brigham", as.character(Name)),
+         ID = ifelse(is.na(ID), "brighja01", as.character(ID))) %>%
   filter(Year == year, !playoffs)
 
 # Scrape and format season results data frame
 #season.results <- getLeagueResults(year, MLBteams) %>% filter(!playoffs)
 
 
-its <- 1000
+its <- 50
 
 # Optimize
 jw.results <- runs.array.pitchers(season.results, min.starts = 15, pitcherCol = "ID") %>% 
