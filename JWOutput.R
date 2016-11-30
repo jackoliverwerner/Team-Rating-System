@@ -2,8 +2,8 @@
 # Set up #
 ##########
 
-setwd("/Users/jackwerner/Documents/My Stuff/Baseball/Team Rating System")
-#setwd("C:/Users/jack.werner1/Documents/BB/Team-Rating-System")
+#setwd("/Users/jackwerner/Documents/My Stuff/Baseball/Team Rating System")
+setwd("C:/Users/jack.werner1/Documents/BB/Team-Rating-System")
 
 source("getSeasonResults.R")
 source("JWPitchers.R")
@@ -15,24 +15,36 @@ MLBteams <- paste0(getwd(), "/MLBteams.csv")
 # Get scores #
 ##############
 
-year <- 2012
+year <- 2009
 
 season.results <- read.csv("gameLogs_1998_2016.csv") %>%
-  mutate(Name = ifelse(is.na(Name), "Jake Brigham", as.character(Name)),
-         ID = ifelse(is.na(ID), "brighja01", as.character(ID))) %>%
   filter(Year == year, !playoffs)
 
 # Scrape and format season results data frame
 #season.results <- getLeagueResults(year, MLBteams) %>% filter(!playoffs)
 
 
-its <- 50
+its <- 200
 
 # Optimize
 jw.results <- runs.array.pitchers(season.results, min.starts = 15, pitcherCol = "ID") %>% 
-  jw.gradient.pitchers.bt(iterations = its, speed = .001, startVal = 2)
+  jw.gradient.pitchers.bt(iterations = its, speed = .001, startVal = 2, print.every.n = 10)
 
 plot(1:its, jw.results$likelihoods, type = "l")
+
+plot(1:(its-1), jw.results$alphas)
+
+
+
+old.progress <- jw.results$likelihoods
+
+a.df <- data.frame(iteration = 1:its,
+                   log.likelihood = c(old.progress, jw.results$likelihoods),
+                   algorithm = rep(c("Without line search", "With line search"), each = its))
+
+ggplot(data = a.df, aes(x = iteration, y = log.likelihood, group = algorithm)) + geom_point()
+
+
 #########################
 # Take a look at scores #
 #########################
@@ -125,4 +137,3 @@ result.df <- data.frame(iteration = 1:its,
 
 ggplot(data = result.df, aes(x = iteration, y = score, group = team)) + geom_line(alpha = .1) +
   theme(legend.position="none")
-
