@@ -19,7 +19,7 @@ runs.array.pitchers <- function(fullSeason.df, teamCol = "team", pitcherCol = "s
     ungroup()
   
   fullSeason.df$pitcherID <- ifelse(fullSeason.df$starts > min.starts,
-                                    paste0(fullSeason.df[[teamCol]], "-", fullSeason.df[[pitcherCol]]),
+                                    as.character(fullSeason.df[[pitcherCol]]),
                                     "Other")
   
   teamNames <- fullSeason.df[,teamCol][[1]] %>% unique()
@@ -85,8 +85,7 @@ log.likelihood <- function(runs.arr, R.vec, RA.vec, mean.adj.fac) {
   return(llik)
 }
 
-
-jw.gradient.pitchers.bt <- function(runs.arr, iterations = 1000, speed = .001, startVal = 1, print.every.n = 100) {
+jw.gradient.pitchers.bt <- function(runs.arr, iterations = 1000, startVal = 1, print.every.n = 100) {
   mean.adj.fac <- 1000
   
   runsList <- alply(runs.arr, 1)
@@ -105,6 +104,8 @@ jw.gradient.pitchers.bt <- function(runs.arr, iterations = 1000, speed = .001, s
   alphas <- rep(0, iterations - 1)
   xs <- rep(0, iterations - 1)
   mean.diffs.vec <- rep(0, iterations)
+  
+  max.counter <- 0
   
   for (i in 2:iterations) {
     if (i %% print.every.n == 0) {
@@ -132,34 +133,52 @@ jw.gradient.pitchers.bt <- function(runs.arr, iterations = 1000, speed = .001, s
                        MoreArgs = list(oppVars = R.scores[,i - 1], maxRuns = maxRuns)
     ) + (2*mean.adj.fac*percent.of.all.starts)*diff.means
     # End calculate gradient
+
+        
     
-    # Find step size
-    m <- sqrt(sum(grad.RAs^2) + sum(grad.Rs^2))
-    c <- .5
-    t <- m*c
-    tau <- .8
-    
-    alpha <- .005
-    
-    for (x in 1:20) {
-      lik.old <- log.likelihood(runs.arr, R.scores[,i-1], RA.scores[,i-1], mean.adj.fac = mean.adj.fac)
-      new.Rs <- pmax(R.scores[,i-1] + alpha*grad.Rs, .1)
-      new.RAs <- pmax(RA.scores[,i-1] + alpha*grad.RAs, .1)
-      lik.new <- log.likelihood(runs.arr, new.Rs, new.RAs, mean.adj.fac = mean.adj.fac)
-      increase <- lik.new - lik.old
+    # Find step size (if it hasn't been too small for too long)
+    if (max.counter < 10) {
+      m <- sqrt(sum(grad.RAs^2) + sum(grad.Rs^2))
+      c <- .5
+      t <- m*c
+      tau <- .8
       
-      if (increase > alpha*t) {
-        xs[i-1] <- x
-        break
-      } else {
-        alpha <- alpha*tau
+      alpha <- .005
+      
+      
+      
+      for (x in 1:7) {
+        lik.old <- log.likelihood(runs.arr, R.scores[,i-1], RA.scores[,i-1], mean.adj.fac = mean.adj.fac)
+        new.Rs <- pmax(R.scores[,i-1] + alpha*grad.Rs, .1)
+        new.RAs <- pmax(RA.scores[,i-1] + alpha*grad.RAs, .1)
+        lik.new <- log.likelihood(runs.arr, new.Rs, new.RAs, mean.adj.fac = mean.adj.fac)
+        increase <- lik.new - lik.old
+        
+        if (x == 7) {
+          max.counter <- max.counter + 1
+        }
+        if (increase > alpha*t) {
+          xs[i-1] <- x
+          max.counter <- 0
+          break
+        } else {
+          alpha <- alpha*tau
+        }
       }
+    } else {
+      alpha <- .001
     }
     
     # Adjust by step size
-    RA.scores[,i] <- RA.scores[,i - 1] + alpha*grad.RAs
+    RA.scores[,i] <- pmax(RA.scores[,i - 1] + alpha*grad.RAs, .1)
+    if (min(RA.scores[,i - 1] + alpha*grad.RAs) < 0) {
+      print("Warning: Pitcher score below zero before adjustment")
+    }
     
-    R.scores[,i] <- R.scores[,i - 1] + alpha*grad.Rs
+    R.scores[,i] <- pmax(R.scores[,i - 1] + alpha*grad.Rs, .1)
+    if (min(R.scores[,i - 1] + alpha*grad.Rs) < 0) {
+      print("Warning: Team score below zero before adjustment")
+    }
     
     team.scores <- data.frame(team = rownames(runs.arr), 
                               score = R.scores[,iterations])
@@ -169,6 +188,15 @@ jw.gradient.pitchers.bt <- function(runs.arr, iterations = 1000, speed = .001, s
                                  starts = apply(runs.arr, 2, sum))
     
     alphas[i-1] <- alpha
+    
+    if (sum(R.scores[,i] < 0) > 1) {
+      print("Teams: ", sum(R.scores[,i] < 0), " negative")
+    }
+    
+    if (sum(RA.scores[,i] < 0) > 1) {
+      print("Teams: ", sum(RA.scores[,i] < 0), " negative")
+    }
+    
     likelihoods[i] <- log.likelihood(runs.arr, R.scores[,i], RA.scores[,i], mean.adj.fac = mean.adj.fac)
     
   }
@@ -181,7 +209,7 @@ jw.gradient.pitchers.bt <- function(runs.arr, iterations = 1000, speed = .001, s
   
 }
 
-
+# Doesn't use backtracking line search
 jw.gradient.pitchers.bt.2 <- function(runs.arr, iterations = 1000, speed = .001, startVal = 1, print.every.n = 100) {
   mean.adj.fac <- 1000
   
@@ -253,61 +281,3 @@ jw.gradient.pitchers.bt.2 <- function(runs.arr, iterations = 1000, speed = .001,
 
 
 
-jw.gradient.pitchers <- function(runs.arr, iterations = 1000, speed = .001, startVal = 1, print.every.n = 100) {
-  runsList <- alply(runs.arr, 1)
-  runsAgainstList <- alply(runs.arr, 2)
-  
-  R.scores <- matrix(0, nrow = 30, ncol = iterations)
-  RA.scores <- matrix(0, nrow = dim(runs.arr)[2], ncol = iterations)
-  R.scores[,1] <- startVal
-  RA.scores[,1] <- startVal
-  
-  maxRuns <- dim(runs.arr)[3]
-  
-  for (i in 2:iterations) {
-    if (i %% print.every.n == 0) {
-      print(i)
-    }
-    
-    # Calculate gradient
-    mean.adj.fac <- 100
-    percent.of.all.starts <- apply(runs.arr, 2, sum)/sum(apply(runs.arr, 2, sum))
-    percent.of.all.games <- apply(runs.arr, 1, sum)/sum(apply(runs.arr, 1, sum))
-    
-    diff.means <- mean(R.scores[,i - 1]) - mean(RA.scores[,i - 1])
-    
-    
-    grad.Rs <- mapply(score.grad.2,
-                      teamVar = R.scores[,i - 1],
-                      freqSlice = runsList,
-                      MoreArgs = list(oppVars = RA.scores[,i - 1], maxRuns = maxRuns)
-    ) - (2*mean.adj.fac*percent.of.all.games)*diff.means
-    
-    
-    R.scores[,i] <- R.scores[,i - 1] + speed*grad.Rs
-    
-    grad.RAs <- mapply(score.grad.2,
-                       teamVar = RA.scores[,i - 1],
-                       freqSlice = runsAgainstList,
-                       MoreArgs = list(oppVars = R.scores[,i - 1], maxRuns = maxRuns)
-    ) + (2*mean.adj.fac*percent.of.all.starts)*diff.means
-    # End calculate gradient
-    
-    
-    RA.scores[,i] <- RA.scores[,i - 1] + speed*grad.RAs
-    
-    team.scores <- data.frame(team = rownames(runs.arr), 
-                              score = R.scores[,iterations])
-    
-    pitcher.scores <- data.frame(team = colnames(runs.arr),
-                                 score = RA.scores[,iterations],
-                                 starts = apply(runs.arr, 2, sum))
-    
-  }
-  
-  out.list <- list(team.scores = team.scores, pitcher.scores = pitcher.scores,
-                   all.R = R.scores, all.RA = RA.scores)
-  
-  return(out.list)
-  
-}

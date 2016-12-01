@@ -30,11 +30,11 @@ for (year in 1998:2016) {
   # Get model scores -- JW #
   ##########################
   
-  its <- 10000
+  its <- 1000
   
   # Optimize
   jw.results <- runs.array.pitchers(reg.results, min.starts = 15, pitcherCol = "ID") %>% 
-    jw.gradient.pitchers(iterations = its, speed = .001, startVal = 2, print.every.n = 1000)
+    jw.gradient.pitchers.bt(iterations = its, startVal = 2, print.every.n = 100)
   
   
   # Finalize score dataframes

@@ -2,7 +2,8 @@
 # Set up #
 ##########
 
-setwd("/Users/jackwerner/Documents/My Stuff/Baseball/Team Rating System")
+#setwd("/Users/jackwerner/Documents/My Stuff/Baseball/Team Rating System")
+setwd("C:/Users/jack.werner1/Documents/BB/Team-Rating-System")
 
 source("getSeasonResults.R")
 source("JWPitchers.R")
@@ -16,39 +17,24 @@ MLBteams <- "/Users/jackwerner/Documents/My Stuff/Baseball/Team Rating System/ML
 
 year <- 2016
 
-season.results <- getLeagueResults(year, MLBteams) %>% filter(!playoffs)
+season.results <- read.csv("gameLogs_1998_2016.csv") %>% filter(!playoffs, Year == year)
 
-season.results$starter[season.results$starter == "A.Sanchez"] <- 
-  ifelse(season.results$team[season.results$starter == "A.Sanchez"] == "TOR", "Aa.Sanchez", "An.Sanchez")
-
-season.results$starter[season.results$starter == "C.Anderson"] <- 
-  ifelse(season.results$team[season.results$starter == "C.Anderson"] == "MIL", "Ch.Anderson", "Co.Anderson")
-
-its <- 10000
+its <- 1000
 
 # LOOPIFY IT
 for (i in seq(0, 25, by = 5)) {
-  jw.results <- runs.array.pitchers(season.results, min.starts = i) %>% 
-    jw.gradient.pitchers(iterations = its, speed = .001, startVal = 2)
+  print(paste0("i = ", i))
   
+  jw.results <- runs.array.pitchers(season.results, min.starts = i, pitcherCol = "ID") %>% 
+    jw.gradient.pitchers.bt(iterations = its, startVal = 2, print.every.n = 100)
   
   team.scores <- jw.results$team.scores
   pitcher.scores <- jw.results$pitcher.scores
-  
-  namesFunc <- function(char) {
-    spl <- strsplit(char, "-")
-    len <- length(spl[[1]])
-    return(spl[[1]][len])
-  }
-  pitcher.scores$name <- sapply(as.character(pitcher.scores$team), namesFunc)
-  
-  pitcher.scores.final <- pitcher.scores %>% group_by(name) %>%
-    summarize(score = weighted.mean(score, starts))
 
   pitcher.df.name <- paste0("pitcher.scores.", i)
   team.df.name <- paste0("team.scores.", i)
   
-  assign(pitcher.df.name, pitcher.scores.final)
+  assign(pitcher.df.name, pitcher.scores)
   assign(team.df.name, team.scores)
 }
 

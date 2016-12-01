@@ -27,6 +27,9 @@ listOfSeasons.wy <- mapply(FUN = addYear, x = listOfSeasons, y = 1998:2016, SIMP
 
 fullSeasonResults <- rbindlist(listOfSeasons.wy)
 
+# Should fix the 86th game of the 2015 Braves season:
+# - "Starter" didn't throw a pitch, not listed in pitcher rundown
+# -  First reliever not given GS
 
 write.csv(fullSeasonResults, file = "gameLogs_1998_2016.csv", row.names = F)
 

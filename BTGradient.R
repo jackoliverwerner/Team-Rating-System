@@ -2,7 +2,6 @@ library(dplyr)
 library(rvest)
 library(data.table)
 library(tidyr)
-library(ggplot2)
 
 ###########################
 # Bradley-Terry functions #
@@ -88,33 +87,18 @@ team.grad <- function(p, pvec, wvec, lvec) {
 
 log.likelihood <- function(wins.mat, ps) {
   ll.out <- 0
-  for (i in 1:nrow(wins.mat)) {
-    for (j in 1:nrow(wins.mat)) {
-      if (ps[i] > 0 & ps[j] > 0) {
-        ll.out <- ll.out + wins.mat[i, j]*log(ps[i]) - wins.mat[i, j]*log(ps[i] + ps[j])
-      }
-    }
-  }
-  names(ll.out) <- NULL
-  return(ll.out)
-}
-
-log.likelihood.b <- function(wins.mat, ps) {
-  ll.out <- rep(0, 30*30)
   
   for (i in 1:nrow(wins.mat)) {
     for (j in 1:nrow(wins.mat)) {
-      if (wins.mat[i, j] > 0) {
-        ll.out.add <- wins.mat[i, j]*log(ps[i]) - wins.mat[i, j]*log(ps[i] + ps[j])
-        ll.out[30*(i - 1) + j] <- ll.out.add
-      }
+      if (ps[i] > 0 & ps[j] > 0)
+      ll.out <- ll.out + wins.mat[i, j]*log(ps[i]) - wins.mat[i, j]*log(ps[i] + ps[j])
     }
   }
   names(ll.out) <- NULL
   return(ll.out)
 }
 
-bt.gradient <- function(wins.mat, iterations = 100, speed = .001)  {
+bt.gradient <- function(wins.mat, iterations = 1000, speed = .001)  {
   wins.list <- split(t(wins.mat), f = rep(1:30, each = 30))
   losses.list <- split(wins.mat, f = rep(1:30, each = 30))
   
@@ -135,7 +119,7 @@ bt.gradient <- function(wins.mat, iterations = 100, speed = .001)  {
                      lvec = losses.list,
                      MoreArgs = list(pvec = mle.scores[,i - 1]))
     
-    new.ps <- pmax(mle.scores[,i - 1] + speed*grad.ps, 0)
+    new.ps <- mle.scores[,i - 1] + speed*grad.ps
     
     mle.scores[,i] <- new.ps/sum(new.ps)*30
     
@@ -155,21 +139,17 @@ bt.gradient <- function(wins.mat, iterations = 100, speed = .001)  {
 #########################
 
 # Get season results data frame
-setwd("/Users/jackwerner/Documents/My Stuff/Baseball/Team Rating System")
+setwd("C:/Users/jack.werner1/Documents/BB/Team-Rating-System")
 
-source("getSeasonResults.R")
+year <- 2016
 
-MLBteams <- "/Users/jackwerner/Documents/My Stuff/Baseball/Team Rating System/MLBteams.csv"
-
-year <- 2015
-
-season.results <- getLeagueResults(year, MLBteams) %>% filter(!playoffs)
+season.results <- read.csv("gameLogs_1998_2016.csv", stringsAsFactors = F) %>% filter(!playoffs, Year == year)
 
 # Work some Bradley-Terry magic on that data frame
-its <- 500
+its <- 1000
 
 bt.results <- wins.matrix(season.results) %>% bt.gradient(iterations = its, speed = 0.001)
-bt.results <- wins.matrix(season.results) %>% bradley.terry(iterations = its)
+#bt.results <- wins.matrix(season.results) %>% bradley.terry(iterations = its)
 
 mle.scores <- bt.results$all.scores
 final.scores <- bt.results$scores
@@ -184,7 +164,7 @@ ggplot(data = result.df, aes(x = iteration, y = score, color = team)) + geom_lin
 orderAt(its)
 
 # Plot score by record
-team.ref <- read.csv(MLBteams, stringsAsFactors = F) %>% filter(Year == year)
+team.ref <- read.csv("MLBTeams.csv", stringsAsFactors = F) %>% filter(Year == year)
 
 team.records <- season.results %>% group_by(team) %>%
   summarize(W = sum(result == "W"), L = sum(result == "L")) %>%
