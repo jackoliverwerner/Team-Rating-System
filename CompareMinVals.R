@@ -2,8 +2,8 @@
 # Set up #
 ##########
 
-#setwd("/Users/jackwerner/Documents/My Stuff/Baseball/Team Rating System")
-setwd("C:/Users/jack.werner1/Documents/BB/Team-Rating-System")
+setwd("/Users/jackwerner/Documents/My Stuff/Baseball/Team Rating System")
+#setwd("C:/Users/jack.werner1/Documents/BB/Team-Rating-System")
 
 source("getSeasonResults.R")
 source("JWPitchers.R")
@@ -29,7 +29,8 @@ for (i in seq(0, 25, by = 5)) {
     jw.gradient.pitchers.bt(iterations = its, startVal = 2, print.every.n = 100)
   
   team.scores <- jw.results$team.scores
-  pitcher.scores <- jw.results$pitcher.scores
+  pitcher.scores <- jw.results$pitcher.scores %>%
+    select(-starts)
 
   pitcher.df.name <- paste0("pitcher.scores.", i)
   team.df.name <- paste0("team.scores.", i)
@@ -47,7 +48,7 @@ team.scores.full <- left_join(team.scores.0, team.scores.5, by = "team") %>%
   left_join(team.scores.25, by = "team") %>% rename(score.25 = score)
 
 minValFunc <- function(char) {
-  return(as.numeric(strsplit(char, ".", fixed = T)[[1]][2]))
+  return(as.numeric(strsplit(as.character(char), ".", fixed = T)[[1]][2]))
 }
 
 team.scores.long <- gather(team.scores.full, key = MinVal, value = Score, 2:7)
@@ -57,12 +58,13 @@ ggplot(data = team.scores.long, aes(x = MinVal, y = Score, color = team)) + geom
 
 
 # Look at pitcher scores
-pitcher.scores.full <- left_join(pitcher.scores.0, pitcher.scores.5, by = "name") %>%
+pitcher.scores.full <- left_join(pitcher.scores.0, pitcher.scores.5, by = "team") %>%
   rename(score.0 = score.x, score.5 = score.y) %>%
-  left_join(pitcher.scores.10, by = "name") %>% rename(score.10 = score) %>%
-  left_join(pitcher.scores.15, by = "name") %>% rename(score.15 = score) %>%
-  left_join(pitcher.scores.20, by = "name") %>% rename(score.20 = score) %>%
-  left_join(pitcher.scores.25, by = "name") %>% rename(score.25 = score)
+  left_join(pitcher.scores.10, by = "team") %>% rename(score.10 = score) %>%
+  left_join(pitcher.scores.15, by = "team") %>% rename(score.15 = score) %>%
+  left_join(pitcher.scores.20, by = "team") %>% rename(score.20 = score) %>%
+  left_join(pitcher.scores.25, by = "team") %>% rename(score.25 = score) %>%
+  rename(name = team)
 
 nasToGroup.df <- data.frame(nas = c(0, 1, 2, 3, 4, 5),
                             category = factor(c("> 25", "21-25", "16-20", "11-15", "6-10", "< 6"),
@@ -89,9 +91,5 @@ ggplot(data = filter(pitcher.scores.long, MinVal == 0), aes(x = Score, y = ..den
 
 
 
-
-
-hist.df <- pitcher.scores.full %>% filter(is.na(score.y))
-ggplot(data = hist.df, aes(x = score.x)) + geom_histogram(binwidth = .25, fill = "white", color = "black")
 
 

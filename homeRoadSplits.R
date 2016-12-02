@@ -2,17 +2,16 @@ library(dplyr)
 library(rvest)
 library(data.table)
 library(tidyr)
+library(ggplot2)
 
 # Get season results data frame
-setwd("C:/Users/jack.werner1/Documents/BB")
-
-source("getSeasonResults.R")
-
-MLBteams <- "C:/Users/jack.werner1/Documents/BB/MLBTeams.csv"
+#setwd("C:/Users/jack.werner1/Documents/BB")
+setwd("/Users/jackwerner/Documents/My Stuff/Baseball/Team Rating System")
 
 year <- 2001
 
-season.results <- getLeagueResults(year, MLBteams) %>% filter(!playoffs)
+season.results <- read.csv("gameLogs_1998_2016.csv", stringsAsFactors = F) %>% 
+  filter(!playoffs, Year == year)
 
 #############
 # Home/Away #
@@ -36,7 +35,7 @@ home <- season.results %>% filter(home)
 length(which(home$result == "W"))/nrow(home)
 
 
-
+# Split-half reliabilities
 dif.cors <- rep(0, 1000)
 
 for (i in 1:1000) {

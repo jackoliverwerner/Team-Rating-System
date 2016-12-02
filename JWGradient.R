@@ -117,13 +117,10 @@ jw.gradient <- function(runs.arr, iterations = 1000, speed = .001) {
 # Get season results data frame
 setwd("/Users/jackwerner/Documents/My Stuff/Baseball/Team Rating System")
 
-source("getSeasonResults.R")
-
-MLBteams <- "/Users/jackwerner/Documents/My Stuff/Baseball/Team Rating System/MLBteams.csv"
-
 year <- 2016
 
-season.results <- getLeagueResults(year, MLBteams) %>% filter(!playoffs)
+season.results <- read.csv("gameLogs_1998_2016.csv", stringsAsFactors = F) %>% 
+  filter(!playoffs, Year == year)
 
 its <- 1000
 

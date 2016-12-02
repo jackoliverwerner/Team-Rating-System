@@ -4,24 +4,20 @@ library(data.table)
 library(tidyr)
 
 # Get season results data frame
-setwd("C:/Users/jack.werner1/Documents/BB")
+#setwd("C:/Users/jack.werner1/Documents/BB")
+setwd("/Users/jackwerner/Documents/My Stuff/Baseball/Team Rating System")
 
-source("getSeasonResults.R")
+year <- 2015
 
-MLBteams <- "C:/Users/jack.werner1/Documents/BB/MLBTeams.csv"
-
-year <- 2001
-
-season.results <- getLeagueResults(year, MLBteams) %>% filter(!playoffs)
-
-rs2015 <- getLeagueResults(1999, MLBteams) %>% filter(!playoffs)
+rs2015 <- read.csv("gameLogs_1998_2016.csv", stringsAsFactors = F) %>% 
+  filter(!playoffs, Year == year)
 
 head(rs2015)
 
 # How does average RA change with starters?
 dodgers <- filter(rs2015, team == "LAD")
 
-d.rotation <- filter(dodgers, starter %in% c("B.Anderson", "C.Kershaw", "Z.Greinke", "M.Bolsinger"))
+d.rotation <- filter(dodgers, starter %in% c("Anderson", "Kershaw", "Greinke", "Bolsinger"))
 
 ggplot(data = d.rotation) + facet_grid(starter ~ .) + 
   geom_histogram(aes(x = RA, y = ..density..), binwidth = 1, fill = "grey90", color = "blue")
@@ -29,7 +25,7 @@ ggplot(data = d.rotation) + facet_grid(starter ~ .) +
 
 cubs <- filter(rs2015, team == "CHC")
 
-c.rotation <- filter(cubs, starter %in% c("J.Arrieta", "J.Hammel", "J.Lester", "K.Hendricks"))
+c.rotation <- filter(cubs, starter %in% c("Arrieta", "Hammel", "Lester", "Hendricks"))
 
 ggplot(data = c.rotation) + facet_grid(starter ~ .) + 
   geom_histogram(aes(x = RA, y = ..density..), binwidth = 1, fill = "grey90", color = "blue")
