@@ -19,7 +19,7 @@ CreateFullDataset.R | Uses getSeasonResults.R to pull all game data from 1998 to
 gameLogs_1998_2016.csv | Outputted data from CreateFullDataset.R
 JWPitchers.R | Provides functions for taking a data frame with season results and scoring each pitcher and team.
 CreateScoresDataset.R | Uses JWPitchers.R to score every player and team from 1998 to 2016.
-pitcherScores_1998_2016 and teamScores_1998_2016 | Outputted data from CreateScoresDataset.R.
+pitcherScores_1998_2016.csv and teamScores_1998_2016.csv | Outputted data from CreateScoresDataset.R.
 PredictPlayoffs.R | Uses scores to predict the results of every playoff game from 1998 to 2016, and evaluates these predictions against actual results.
 
 #### AUXILIARY FILES:
