@@ -8,8 +8,8 @@ library(ggplot2)
 library(tidyr)
 library(skellam)
 
-#setwd("/Users/jackwerner/Documents/My Stuff/Baseball/Team Rating System")
-setwd("C:/Users/jack.werner1/Documents/BB/Team-Rating-System")
+setwd("/Users/jackwerner/Documents/My Stuff/Baseball/Team Rating System")
+#setwd("C:/Users/jack.werner1/Documents/BB/Team-Rating-System")
 
 
 ####################
@@ -62,8 +62,8 @@ for (year in 1998:2016) {
   # Get model scores -- JW #
   ##########################
   
-  team.scores <- filter(team.scores.full, Year == year)
-  pitcher.scores.final <- filter(pitcher.scores.full, Year == year)
+  team.scores <- filter(team.scores.full, Year == year) %>% select(-Year)
+  pitcher.scores.final <- filter(pitcher.scores.full, Year == year) %>% select(-Year)
   
   
   ###############################
@@ -100,10 +100,10 @@ for (year in 1998:2016) {
   playoff.preds.WP <- playoffs.df %>%
     left_join(teamWPs, by = c("home.team" = "team")) %>% rename(WP.home = WP) %>%
     left_join(teamWPs, by = c("away.team" = "team")) %>% rename(WP.away = WP) %>%
-    mutate(#home.percent.WP = WP.home/(WP.home + WP.away),
-      #away.percent.WP = WP.away/(WP.home + WP.away),
-      home.percent.WP = (WP.home - WP.away + 1)/2,
-      away.percent.WP = (WP.away - WP.home + 1)/2,
+    mutate(home.percent.WP = WP.home/(WP.home + WP.away),
+      away.percent.WP = WP.away/(WP.home + WP.away),
+      #home.percent.WP = (WP.home - WP.away + 1)/2,
+      #away.percent.WP = (WP.away - WP.home + 1)/2,
       home.percent.WP.adj = hfa*home.percent.WP/((hfa - 1)*home.percent.WP + 1),
       away.percent.WP.adj = (away.percent.WP/hfa)/((1/hfa - 1)*away.percent.WP + 1))
   
@@ -199,6 +199,16 @@ ggplot(data = roc, aes(x = fpr, y = tpr, color = Model)) + geom_line() +
   geom_abline(slope = 1, intercept = 0, linetype = 2) +
   labs(title = "ROC Curves", x = "False Positive Rate", y = "True Positive Rate")
 
+# Distributions of predictions
+hist.df <- data.frame(Probability = c(playoff.preds.full$home.percent.JW, playoff.preds.full$home.percent.WP),
+                      Model = rep(c("PML", "Simple"), each = nrow(playoff.preds.full)))
+
+ggplot(data = hist.df, aes(x = Probability, fill = Model)) + 
+  geom_histogram(alpha = .5, position = "identity") +
+  scale_fill_manual(values = c("red", "blue")) +
+  coord_cartesian(xlim = c(0, 1)) +
+  labs(title = "Distribution of Predictions") +
+  ylab("Count")
 
 
 
